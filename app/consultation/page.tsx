@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { v4 as uuidv4 } from "uuid"
+import Markdown from "react-markdown"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -501,6 +502,78 @@ export default function ConsultationPage() {
                         }}
                       />
                     </div>
+                  ) : message.type === "ai" ? (
+                    <Markdown
+                      components={{
+                        h1: ({ node, ...props }) => (
+                          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, margin: "1rem 0 0.5rem 0" }} {...props} />
+                        ),
+                        h2: ({ node, ...props }) => (
+                          <h2
+                            style={{ fontSize: "1.25rem", fontWeight: 700, margin: "0.875rem 0 0.375rem 0" }}
+                            {...props}
+                          />
+                        ),
+                        h3: ({ node, ...props }) => (
+                          <h3
+                            style={{ fontSize: "1.1rem", fontWeight: 600, margin: "0.75rem 0 0.25rem 0" }}
+                            {...props}
+                          />
+                        ),
+                        p: ({ node, ...props }) => <p style={{ margin: "0.5rem 0" }} {...props} />,
+                        ul: ({ node, ...props }) => (
+                          <ul style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />
+                        ),
+                        li: ({ node, ...props }) => <li style={{ margin: "0.25rem 0" }} {...props} />,
+                        blockquote: ({ node, ...props }) => (
+                          <blockquote
+                            style={{
+                              borderLeft: "3px solid rgba(45,138,138,0.5)",
+                              paddingLeft: "1rem",
+                              margin: "0.75rem 0",
+                              fontStyle: "italic",
+                              opacity: 0.9,
+                            }}
+                            {...props}
+                          />
+                        ),
+                        code: ({ node, inline, ...props }) =>
+                          inline ? (
+                            <code
+                              style={{
+                                background: "rgba(0,0,0,0.05)",
+                                padding: "0.2rem 0.4rem",
+                                borderRadius: "0.25rem",
+                                fontFamily: "monospace",
+                                fontSize: "0.9em",
+                              }}
+                              {...props}
+                            />
+                          ) : (
+                            <code
+                              style={{
+                                background: "rgba(0,0,0,0.08)",
+                                padding: "0.75rem",
+                                borderRadius: "0.5rem",
+                                fontFamily: "monospace",
+                                fontSize: "0.9em",
+                                display: "block",
+                                overflow: "auto",
+                                margin: "0.5rem 0",
+                              }}
+                              {...props}
+                            />
+                          ),
+                        a: ({ node, ...props }) => (
+                          <a style={{ color: "#2d8a8a", textDecoration: "underline", fontWeight: 500 }} {...props} />
+                        ),
+                      }}
+                    >
+                      {message.displayedContent || message.content}
+                    </Markdown>
                   ) : (
                     message.displayedContent || message.content
                   )}
