@@ -8,18 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Loader2,
-  AlertCircle,
-  Brain,
-  User,
-  Bot,
-  Send,
-  Heart,
-  MessageSquare,
-  Plus,
-  Trash2,
-} from "lucide-react"
+import { Loader2, AlertCircle, Scale, User, Bot, Send, Shield, MessageSquare, Plus, Trash2 } from "lucide-react"
 
 // --- API Endpoints ---
 const API_BASE_URL = "https://aravsaxena884-consult.hf.space"
@@ -43,20 +32,16 @@ type Session = {
   title: string
 }
 
-// Type for the response from /legal-consultation
 type ConsultationResponse = {
-  response: string // This is the JSON string of {consultation: "...", key_terms: "..."}
-  history: string[] // This is just a list of content strings, not used for loading
+  response: string
+  history: string[]
 }
 
-// Type for the parsed AI response content
 type AiResponseContent = {
   consultation: string
   key_terms: string
 }
 
-// Type for the response from /get-session-history
-// This matches the Pydantic model { "history": [ ... ] }
 type HistoryResponse = {
   history: {
     type: "human" | "ai" | "system"
@@ -71,7 +56,7 @@ type HistoryResponse = {
 const SESSION_LIST_KEY = "chat_session_list"
 const CURRENT_SESSION_ID_KEY = "current_chat_session_id"
 
-export default function ConsultationPage() {
+export default function LegalTechPage() {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,7 +71,6 @@ export default function ConsultationPage() {
 
   // --- Session Management ---
 
-  // Load sessions from localStorage on initial render
   useEffect(() => {
     try {
       const storedList = localStorage.getItem(SESSION_LIST_KEY)
@@ -99,19 +83,16 @@ export default function ConsultationPage() {
       if (validId) {
         loadSession(storedId!)
       } else if (sessions.length > 0) {
-        // Load the most recent session
         loadSession(sessions[0].id)
       } else {
-        // No sessions exist, create a new one
         handleNewChat()
       }
     } catch (err) {
       console.error("Failed to load from localStorage:", err)
       handleNewChat()
     }
-  }, []) // Empty dependency array ensures this runs only once on mount
+  }, [])
 
-  // Save session list to localStorage whenever it changes
   useEffect(() => {
     try {
       localStorage.setItem(SESSION_LIST_KEY, JSON.stringify(sessionList))
@@ -120,7 +101,6 @@ export default function ConsultationPage() {
     }
   }, [sessionList])
 
-  // Save current session ID
   const setActiveSession = (sessionId: string) => {
     setCurrentSessionId(sessionId)
     try {
@@ -136,7 +116,7 @@ export default function ConsultationPage() {
     if (isTypingActive) return
 
     const newId = uuidv4()
-    const newSession: Session = { id: newId, title: "New Chat" }
+    const newSession: Session = { id: newId, title: "New Consultation" }
 
     setSessionList((prev) => [newSession, ...prev])
     setActiveSession(newId)
@@ -151,7 +131,7 @@ export default function ConsultationPage() {
   const loadSession = useCallback(
     async (sessionId: string) => {
       if (isTypingActive) return
-      if (sessionId === currentSessionId && messages.length > 0) return // Already loaded
+      if (sessionId === currentSessionId && messages.length > 0) return
 
       setActiveSession(sessionId)
       setMessages([])
@@ -165,17 +145,13 @@ export default function ConsultationPage() {
         }
         const data: HistoryResponse = await response.json()
 
-        // Convert backend history format to frontend Message format
         const loadedMessages: Message[] = data.history.map((msg) => {
           let content = msg.data.content
-          // AI messages are saved as JSON strings, user messages are plain text
           if (msg.type === "ai") {
             try {
-              // Try to parse the content as JSON
               const aiContent: AiResponseContent = JSON.parse(msg.data.content)
               content = aiContent.consultation
             } catch (e) {
-              // If it fails (e.g., old message format), just use the raw content
               content = msg.data.content
             }
           }
@@ -192,8 +168,7 @@ export default function ConsultationPage() {
         setMessages(loadedMessages)
       } catch (err) {
         console.error("Failed to load session:", err)
-        setError("Failed to load chat history. Please try again.")
-        // If loading fails, create a new chat to avoid being stuck
+        setError("Failed to load consultation history. Please try again.")
         if (sessionList.length === 0) {
           handleNewChat()
         }
@@ -204,19 +179,12 @@ export default function ConsultationPage() {
     [currentSessionId, isTypingActive, messages.length, sessionList.length],
   )
 
-  const handleDeleteSession = async (
-    e: React.MouseEvent,
-    sessionIdToDelete: string,
-  ) => {
-    e.stopPropagation() // Prevent click from loading the session
+  const handleDeleteSession = async (e: React.MouseEvent, sessionIdToDelete: string) => {
+    e.stopPropagation()
 
-    // Optimistic UI update: Remove from list immediately
-    const remainingSessions = sessionList.filter(
-      (s) => s.id !== sessionIdToDelete,
-    )
+    const remainingSessions = sessionList.filter((s) => s.id !== sessionIdToDelete)
     setSessionList(remainingSessions)
 
-    // Handle UI logic for switching sessions
     if (currentSessionId === sessionIdToDelete) {
       if (remainingSessions.length > 0) {
         loadSession(remainingSessions[0].id)
@@ -225,33 +193,26 @@ export default function ConsultationPage() {
       }
     }
 
-    // Call backend to delete from database
     try {
       await fetch(`${DELETE_SESSION_URL}/${sessionIdToDelete}`, {
         method: "DELETE",
       })
-      // Log success
-      console.log("Session deleted from database:", sessionIdToDelete)
+      console.log("Session deleted:", sessionIdToDelete)
     } catch (err) {
-      console.warn("Failed to delete session from database:", err)
-      // Note: We don't re-add it to the list.
-      // The user's primary action (deleting from their view) is complete.
+      console.warn("Failed to delete session:", err)
     }
   }
 
-  // Auto-scroll to bottom when new messages are added
   useEffect(() => {
     const scrollToBottom = () => {
       if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop =
-          messagesContainerRef.current.scrollHeight
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight
       }
     }
     const timeoutId = setTimeout(scrollToBottom, 100)
     return () => clearTimeout(timeoutId)
   }, [messages, isTypingActive])
 
-  // Cleanup function
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
@@ -263,7 +224,6 @@ export default function ConsultationPage() {
     }
   }, [])
 
-  // Optimized typing effect
   const simulateTyping = useCallback(
     (messageId: string, fullContent: string) => {
       if (isTypingActive) return
@@ -276,9 +236,7 @@ export default function ConsultationPage() {
         if (currentWordIndex >= words.length) {
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === messageId
-                ? { ...msg, isTyping: false, displayedContent: fullContent }
-                : msg,
+              msg.id === messageId ? { ...msg, isTyping: false, displayedContent: fullContent } : msg,
             ),
           )
           setIsTypingActive(false)
@@ -289,9 +247,7 @@ export default function ConsultationPage() {
         const wordsToShow = words.slice(0, currentWordIndex + batchSize).join(" ")
 
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId ? { ...msg, displayedContent: wordsToShow } : msg,
-          ),
+          prev.map((msg) => (msg.id === messageId ? { ...msg, displayedContent: wordsToShow } : msg)),
         )
 
         currentWordIndex += batchSize
@@ -303,7 +259,6 @@ export default function ConsultationPage() {
     [isTypingActive],
   )
 
-  // API consultation handler
   const handleConsult = useCallback(async () => {
     if (!query.trim() || loading || isTypingActive || !currentSessionId) return
 
@@ -326,17 +281,9 @@ export default function ConsultationPage() {
     setLoading(true)
     setError(null)
 
-    // Update session title with first message
     if (messages.length === 0) {
-      const newTitle =
-        currentQuery.length > 30
-          ? currentQuery.substring(0, 30) + "..."
-          : currentQuery
-      setSessionList((prev) =>
-        prev.map((s) =>
-          s.id === currentSessionId ? { ...s, title: newTitle } : s,
-        ),
-      )
+      const newTitle = currentQuery.length > 30 ? currentQuery.substring(0, 30) + "..." : currentQuery
+      setSessionList((prev) => prev.map((s) => (s.id === currentSessionId ? { ...s, title: newTitle } : s)))
     }
 
     try {
@@ -345,7 +292,7 @@ export default function ConsultationPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           query: currentQuery,
-          user_id: currentSessionId, // Use the active session ID
+          user_id: currentSessionId,
         }),
         signal: abortControllerRef.current.signal,
       })
@@ -357,16 +304,13 @@ export default function ConsultationPage() {
 
       const data: ConsultationResponse = await response.json()
 
-      // The 'response' field from the backend is now a valid JSON string
-      // We parse it to get the actual consultation text
       const parsedAiResponse: AiResponseContent = JSON.parse(data.response)
-      const consultationText =
-        parsedAiResponse.consultation || "I'm not sure how to respond to that."
+      const consultationText = parsedAiResponse.consultation || "I'm unable to provide guidance on this matter."
 
       const aiMessage: Message = {
         id: uuidv4(),
         type: "ai",
-        content: consultationText, // Store the clean text
+        content: consultationText,
         timestamp: new Date(),
         isTyping: true,
         displayedContent: "",
@@ -376,25 +320,16 @@ export default function ConsultationPage() {
       simulateTyping(aiMessage.id, consultationText)
     } catch (err) {
       if (err instanceof Error && err.name !== "AbortError") {
-        let errorMsg = err.message || "Failed to get response. Please try again."
+        let errorMsg = err.message || "Failed to get legal guidance. Please try again."
         if (errorMsg.includes("is not valid JSON")) {
-          errorMsg =
-            "Received an invalid response from the server. Please try again."
+          errorMsg = "Received an invalid response from the server. Please try again."
         }
         setError(errorMsg)
       }
     } finally {
       setLoading(false)
     }
-  }, [
-    query,
-    loading,
-    isTypingActive,
-    currentSessionId,
-    messages.length,
-    simulateTyping,
-    loadSession, // Added loadSession to dependencies
-  ])
+  }, [query, loading, isTypingActive, currentSessionId, messages.length, simulateTyping, loadSession])
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -410,37 +345,58 @@ export default function ConsultationPage() {
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
-        background: "linear-gradient(135deg, #fafaf8 0%, #f5f3f0 100%)",
+        background: "linear-gradient(180deg, #FFFFFF 0%, #F8F9FA 100%)",
       }}
     >
-      {/* Header */}
+      {/* Indian Flag Stripe */}
+      <div
+        style={{
+          height: "4px",
+          background: "linear-gradient(90deg, #FF9933 0%, #FFFFFF 33.33%, #138808 66.66%, #1F41B3 100%)",
+        }}
+      />
+
+      {/* Header with Indian Flag Theme */}
       <div
         style={{
           padding: "1.5rem 2rem",
-          borderBottom: "1px solid #e0d9d3",
-          background: "rgba(255, 255, 255, 0.7)",
-          backdropFilter: "blur(10px)",
+          background: "linear-gradient(135deg, #FFFFFF 0%, #FFFBF0 100%)",
+          borderBottom: "2px solid #FF9933",
+          boxShadow: "0 4px 20px rgba(31, 65, 179, 0.08)",
         }}
       >
-        <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+            {/* Flag-themed Icon */}
             <div
               style={{
-                width: "2.5rem",
-                height: "2.5rem",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg, #2d8a8a 0%, #4da9a0 100%)",
+                width: "3.5rem",
+                height: "3.5rem",
+                borderRadius: "1rem",
+                background: "linear-gradient(135deg, #FF9933 0%, #FFFFFF 50%, #138808 100%)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                boxShadow: "0 4px 12px rgba(31, 65, 179, 0.15)",
               }}
             >
-              <Heart style={{ color: "white", width: "1.25rem", height: "1.25rem" }} />
+              <Scale style={{ color: "#1F41B3", width: "1.75rem", height: "1.75rem", fontWeight: "bold" }} />
             </div>
             <div>
-              <h1 style={{ fontSize: "1.5rem", fontWeight: 600, margin: 0, color: "#1a1a1a" }}>Dashing BOT</h1>
-              <p style={{ fontSize: "0.875rem", color: "#7a7a7a", margin: "0.25rem 0 0 0" }}>
-                Your supportive wellness companion
+              <h1
+                style={{
+                  fontSize: "2rem",
+                  fontWeight: 800,
+                  margin: 0,
+                  background: "linear-gradient(135deg, #FF9933 0%, #1F41B3 50%, #138808 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                LexAI Assist
+              </h1>
+              <p style={{ fontSize: "0.9rem", color: "#666", margin: "0.25rem 0 0 0", fontWeight: 500 }}>
+                Indian Legal Intelligence Platform
               </p>
             </div>
           </div>
@@ -452,18 +408,18 @@ export default function ConsultationPage() {
         style={{
           flex: 1,
           display: "flex",
-          maxWidth: "1200px",
+          maxWidth: "1400px",
           width: "100%",
           margin: "0 auto",
           gap: "1.5rem",
           padding: "1.5rem 2rem",
-          overflow: "hidden", // Prevent page-level scroll
+          overflow: "hidden",
         }}
       >
-        {/* === NEW CHAT HISTORY SIDEBAR === */}
+        {/* Chat History Sidebar */}
         <div
           style={{
-            width: "280px",
+            width: "300px",
             display: "flex",
             flexDirection: "column",
             gap: "1rem",
@@ -475,32 +431,65 @@ export default function ConsultationPage() {
             disabled={isTypingActive}
             style={{
               display: "flex",
-              justifyContent: "space-between",
+              justifyContent: "center",
               alignItems: "center",
-              padding: "0.75rem 1rem",
-              fontSize: "0.9rem",
-              fontWeight: 600,
-              background: "#2d8a8a",
+              gap: "0.5rem",
+              padding: "0.875rem 1.25rem",
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              background: "linear-gradient(135deg, #FF9933 0%, #138808 100%)",
               color: "white",
               borderRadius: "0.875rem",
               border: "none",
-              cursor: "pointer",
+              cursor: isTypingActive ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              boxShadow: "0 4px 12px rgba(255, 153, 51, 0.2)",
+            }}
+            onMouseEnter={(e) => {
+              if (!isTypingActive) {
+                e.currentTarget.style.boxShadow = "0 6px 20px rgba(255, 153, 51, 0.3)"
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "0 4px 12px rgba(255, 153, 51, 0.2)"
             }}
           >
-            New Chat
-            <Plus style={{ width: "1.1rem", height: "1.1rem" }} />
+            <Plus style={{ width: "1.25rem", height: "1.25rem" }} />
+            New Consultation
           </Button>
+
           <Card
             style={{
               flex: 1,
-              border: "1px solid #e0d9d3",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              border: "2px solid #E0E0E0",
+              boxShadow: "0 4px 16px rgba(31, 65, 179, 0.08)",
               borderRadius: "1.25rem",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",
+              background: "#FFFFFF",
             }}
           >
+            <div
+              style={{
+                padding: "0.75rem 1rem",
+                borderBottom: "1px solid #F0F0F0",
+                background: "linear-gradient(90deg, rgba(255, 153, 51, 0.05) 0%, rgba(19, 136, 8, 0.05) 100%)",
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "0.85rem",
+                  fontWeight: 700,
+                  color: "#138808",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                Consultation History
+              </p>
+            </div>
             <CardContent
               style={{
                 padding: "0.75rem",
@@ -508,11 +497,43 @@ export default function ConsultationPage() {
                 display: "flex",
                 flexDirection: "column",
                 gap: "0.5rem",
+                flex: 1,
+                scrollbarWidth: "thin",
+                scrollbarColor: "#FF9933 #F5F5F5",
               }}
+              className="custom-scrollbar"
             >
+              <style jsx>{`
+                .custom-scrollbar {
+                  scrollbar-width: thin;
+                  scrollbar-color: #FF9933 #F5F5F5;
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                  width: 6px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                  background: #F5F5F5;
+                  border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                  background: #FF9933;
+                  border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                  background: #E88A1F;
+                }
+              `}</style>
               {sessionList.length === 0 ? (
-                <p style={{ textAlign: "center", color: "#7a7a7a", fontSize: "0.875rem", padding: "1rem" }}>
-                  No chat history
+                <p
+                  style={{
+                    textAlign: "center",
+                    color: "#999",
+                    fontSize: "0.85rem",
+                    padding: "2rem 1rem",
+                    fontStyle: "italic",
+                  }}
+                >
+                  No consultations yet
                 </p>
               ) : (
                 sessionList.map((session) => (
@@ -521,54 +542,72 @@ export default function ConsultationPage() {
                     onClick={() => loadSession(session.id)}
                     disabled={isTypingActive}
                     style={{
-                      padding: "0.75rem 1rem",
+                      padding: "0.875rem 1rem",
                       borderRadius: "0.875rem",
-                      border: "none",
+                      border: currentSessionId === session.id ? "2px solid #FF9933" : "1px solid transparent",
                       background:
-                        currentSessionId === session.id ? "#f0ede8" : "transparent",
-                      cursor: "pointer",
+                        currentSessionId === session.id
+                          ? "linear-gradient(135deg, #FFF3E0 0%, #E8F5E9 100%)"
+                          : "transparent",
+                      cursor: isTypingActive ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
-                      gap: "0.5rem",
-                      fontSize: "0.875rem",
-                      color: "#1a1a1a",
+                      gap: "0.75rem",
+                      fontSize: "0.9rem",
+                      color: "#0F1419",
                       transition: "all 0.2s ease",
-                      fontWeight: currentSessionId === session.id ? 600 : 400,
+                      fontWeight: currentSessionId === session.id ? 600 : 500,
                       width: "100%",
                       textAlign: "left",
                     }}
                     onMouseEnter={(e) => {
-                      if (currentSessionId !== session.id)
-                        e.currentTarget.style.background = "#f5f3f0"
+                      if (currentSessionId !== session.id && !isTypingActive) {
+                        e.currentTarget.style.background = "#F8F8F8"
+                        e.currentTarget.style.border = "1px solid #FF9933"
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      if (currentSessionId !== session.id)
+                      if (currentSessionId !== session.id) {
                         e.currentTarget.style.background = "transparent"
+                        e.currentTarget.style.border = "1px solid transparent"
+                      }
                     }}
                   >
-                    <MessageSquare style={{ width: "1rem", height: "1rem", color: "#7a7a7a", flexShrink: 0 }} />
-                    <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <MessageSquare
+                      style={{
+                        width: "1.1rem",
+                        height: "1.1rem",
+                        color: currentSessionId === session.id ? "#FF9933" : "#1F41B3",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        flex: 1,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
                       {session.title}
                     </span>
-                    
-                    {/* --- THIS IS THE CORRECTED ICON --- */}
+
                     <Trash2
                       style={{
-                        width: "0.9rem",
-                        height: "0.9rem",
-                        color: "#9a9a9a",
+                        width: "0.95rem",
+                        height: "0.95rem",
+                        color: "#DDD",
                         flexShrink: 0,
-                        visibility: "hidden", // Still hidden by default
+                        visibility: "hidden",
+                        transition: "all 0.2s",
                       }}
-                      className="delete-icon" // The CSS in <style jsx> targets this
+                      className="delete-icon"
                       onClick={(e) => handleDeleteSession(e, session.id)}
                       onMouseEnter={(e) => {
-                        // Only change color, NOT visibility
-                        e.currentTarget.style.color = "#dc2626"
+                        e.currentTarget.style.color = "#FF6B6B"
                       }}
                       onMouseLeave={(e) => {
-                        // Only change color, NOT visibility
-                        e.currentTarget.style.color = "#9a9a9a"
+                        e.currentTarget.style.color = "#DDD"
                       }}
                     />
                   </button>
@@ -578,17 +617,17 @@ export default function ConsultationPage() {
           </Card>
         </div>
 
-        {/* === CHAT AREA === */}
+        {/* Chat Area */}
         <div
           style={{
             flex: 1,
             display: "flex",
             flexDirection: "column",
             gap: "1rem",
-            minWidth: 0, // Prevents flexbox overflow
+            minWidth: 0,
           }}
         >
-          {/* Messages Container */}
+          {/* Messages Container with Custom Scrollbar */}
           <div
             ref={messagesContainerRef}
             style={{
@@ -597,13 +636,37 @@ export default function ConsultationPage() {
               display: "flex",
               flexDirection: "column",
               gap: "1rem",
-              padding: "1rem",
-              background: "white",
-              borderRadius: "1.25rem",
-              border: "1px solid #e0d9d3",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              padding: "1.5rem",
+              background: "linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%)",
+              borderRadius: "1.5rem",
+              border: "2px solid #E8E8E8",
+              boxShadow: "0 8px 32px rgba(31, 65, 179, 0.06)",
+              scrollbarWidth: "thin",
+              scrollbarColor: "#138808 #F0F0F0",
             }}
+            className="messages-container"
           >
+            <style jsx>{`
+              .messages-container {
+                scrollbar-width: thin;
+                scrollbar-color: #138808 #F0F0F0;
+              }
+              .messages-container::-webkit-scrollbar {
+                width: 8px;
+              }
+              .messages-container::-webkit-scrollbar-track {
+                background: #F0F0F0;
+                border-radius: 10px;
+              }
+              .messages-container::-webkit-scrollbar-thumb {
+                background: #138808;
+                border-radius: 10px;
+                border: 2px solid #F0F0F0;
+              }
+              .messages-container::-webkit-scrollbar-thumb:hover {
+                background: #0F6B04;
+              }
+            `}</style>
             {/* Welcome State */}
             {messages.length === 0 && !loading && (
               <div
@@ -620,34 +683,68 @@ export default function ConsultationPage() {
               >
                 <div
                   style={{
-                    width: "4rem",
-                    height: "4rem",
-                    borderRadius: "50%",
-                    background:
-                      "linear-gradient(135deg, #2d8a8a 0%, #4da9a0 100%)",
+                    width: "4.5rem",
+                    height: "4.5rem",
+                    borderRadius: "1.5rem",
+                    background: "linear-gradient(135deg, #FF9933 0%, #1F41B3 50%, #138808 100%)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    boxShadow: "0 8px 24px rgba(31, 65, 179, 0.2)",
                   }}
                 >
-                  <Brain style={{ width: "2rem", height: "2rem", color: "white" }} />
+                  <Shield style={{ width: "2.25rem", height: "2.25rem", color: "white" }} />
                 </div>
                 <div>
-                  <h2 style={{ fontSize: "1.5rem", fontWeight: 600, margin: "0 0 0.5rem 0", color: "#1a1a1a" }}>
-                    Welcome to Dashing BOT
+                  <h2
+                    style={{
+                      fontSize: "1.75rem",
+                      fontWeight: 800,
+                      margin: "0 0 0.75rem 0",
+                      background: "linear-gradient(135deg, #FF9933 0%, #1F41B3 50%, #138808 100%)",
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    Welcome to LexAI Assist
                   </h2>
-                  <p style={{ fontSize: "0.95rem", color: "#7a7a7a", margin: 0, lineHeight: "1.5" }}>
-                    I'm here to listen and support you. Share what's on
-                    your mind, or start a new chat.
+                  <p style={{ fontSize: "1rem", color: "#666", margin: "0 0 1rem 0", lineHeight: "1.6" }}>
+                    Expert legal guidance for Indian law matters. Ask about contracts, compliance,
+                    <br />
+                    constitutional rights, corporate law, and more.
                   </p>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "0.75rem",
+                      justifyContent: "center",
+                      fontSize: "0.85rem",
+                      color: "#999",
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>⚖️ 24/7 Available</span>
+                    <span>•</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>🛡️ Confidential</span>
+                    <span>•</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>✓ Reliable</span>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Loading Spinner for History */}
+            {/* Loading Spinner */}
             {loading && messages.length === 0 && (
               <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1 }}>
-                <Loader2 style={{ width: "2rem", height: "2rem", color: "#2d8a8a", animation: "spin 1s linear infinite" }} />
+                <Loader2
+                  style={{
+                    width: "2.5rem",
+                    height: "2.5rem",
+                    background: "linear-gradient(90deg, #FF9933 0%, #138808 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
               </div>
             )}
 
@@ -659,62 +756,70 @@ export default function ConsultationPage() {
                   display: "flex",
                   justifyContent: message.type === "user" ? "flex-end" : "flex-start",
                   gap: "0.75rem",
+                  animation: "fadeIn 0.3s ease-in",
                 }}
               >
                 {message.type === "ai" && (
                   <div
                     style={{
-                      width: "2rem",
-                      height: "2rem",
+                      width: "2.5rem",
+                      height: "2.5rem",
                       borderRadius: "50%",
-                      background: "#e8f4f2",
+                      background: "linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(19, 136, 8, 0.15)",
                     }}
                   >
-                    <Bot style={{ width: "1.25rem", height: "1.25rem", color: "#2d8a8a" }} />
+                    <Bot style={{ width: "1.4rem", height: "1.4rem", color: "#138808" }} />
                   </div>
                 )}
                 <div
                   style={{
                     maxWidth: "70%",
-                    padding: "0.875rem 1.125rem",
-                    borderRadius: "1rem",
-                    background: message.type === "user" ? "#2d8a8a" : "#f0ede8",
-                    color: message.type === "user" ? "white" : "#1a1a1a",
+                    padding: "1rem 1.25rem",
+                    borderRadius: "1.25rem",
+                    background:
+                      message.type === "user"
+                        ? "linear-gradient(135deg, #FF9933 0%, #1F41B3 100%)"
+                        : "linear-gradient(135deg, #F5F5F5 0%, #EBEBEB 100%)",
+                    color: message.type === "user" ? "white" : "#0F1419",
                     fontSize: "0.95rem",
-                    lineHeight: "1.5",
+                    lineHeight: "1.6",
                     wordWrap: "break-word",
+                    boxShadow:
+                      message.type === "user" ? "0 4px 12px rgba(31, 65, 179, 0.15)" : "0 2px 8px rgba(0, 0, 0, 0.05)",
+                    border: message.type === "user" ? "none" : "1px solid #E0E0E0",
                   }}
                 >
                   {message.isTyping && !message.displayedContent ? (
-                    <div style={{ display: "flex", gap: "0.25rem" }}>
+                    <div style={{ display: "flex", gap: "0.35rem" }}>
                       <div
                         style={{
-                          width: "0.5rem",
-                          height: "0.5rem",
+                          width: "0.6rem",
+                          height: "0.6rem",
                           borderRadius: "50%",
-                          background: "#7a7a7a",
+                          background: "#138808",
                           animation: "pulse 1.5s ease-in-out infinite",
                         }}
                       />
                       <div
                         style={{
-                          width: "0.5rem",
-                          height: "0.5rem",
+                          width: "0.6rem",
+                          height: "0.6rem",
                           borderRadius: "50%",
-                          background: "#7a7a7a",
+                          background: "#138808",
                           animation: "pulse 1.5s ease-in-out infinite 0.2s",
                         }}
                       />
                       <div
                         style={{
-                          width: "0.5rem",
-                          height: "0.5rem",
+                          width: "0.6rem",
+                          height: "0.6rem",
                           borderRadius: "50%",
-                          background: "#7a7a7a",
+                          background: "#138808",
                           animation: "pulse 1.5s ease-in-out infinite 0.4s",
                         }}
                       />
@@ -723,10 +828,27 @@ export default function ConsultationPage() {
                     <Markdown
                       components={{
                         p: ({ node, ...props }) => <p style={{ margin: "0.5rem 0" }} {...props} />,
-                        ul: ({ node, ...props }) => <ul style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />,
-                        ol: ({ node, ...props }) => <ol style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />,
+                        ul: ({ node, ...props }) => (
+                          <ul style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />
+                        ),
+                        ol: ({ node, ...props }) => (
+                          <ol style={{ margin: "0.5rem 0", paddingLeft: "1.5rem" }} {...props} />
+                        ),
                         li: ({ node, ...props }) => <li style={{ margin: "0.25rem 0" }} {...props} />,
-                        a: ({ node, ...props }) => <a style={{ color: "#2d8a8a", textDecoration: "underline", fontWeight: 500 }} {...props} />,
+                        a: ({ node, ...props }) => (
+                          <a
+                            style={{
+                              color: "#138808",
+                              textDecoration: "underline",
+                              fontWeight: 600,
+                              cursor: "pointer",
+                            }}
+                            {...props}
+                          />
+                        ),
+                        strong: ({ node, ...props }) => (
+                          <strong style={{ color: "#FF9933", fontWeight: 700 }} {...props} />
+                        ),
                       }}
                     >
                       {message.displayedContent || message.content}
@@ -738,17 +860,18 @@ export default function ConsultationPage() {
                 {message.type === "user" && (
                   <div
                     style={{
-                      width: "2rem",
-                      height: "2rem",
+                      width: "2.5rem",
+                      height: "2.5rem",
                       borderRadius: "50%",
-                      background: "#2d8a8a",
+                      background: "linear-gradient(135deg, #FF9933 0%, #E88A1F 100%)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
+                      boxShadow: "0 2px 8px rgba(255, 153, 51, 0.2)",
                     }}
                   >
-                    <User style={{ width: "1.25rem", height: "1.25rem", color: "white" }} />
+                    <User style={{ width: "1.4rem", height: "1.4rem", color: "white" }} />
                   </div>
                 )}
               </div>
@@ -757,9 +880,16 @@ export default function ConsultationPage() {
 
           {/* Error Alert */}
           {error && (
-            <Alert style={{ borderRadius: "0.875rem", border: "1px solid #fecaca", background: "#fef2f2" }}>
-              <AlertCircle style={{ width: "1rem", height: "1rem", color: "#dc2626" }} />
-              <AlertDescription style={{ color: "#7a1a1a" }}>{error}</AlertDescription>
+            <Alert
+              style={{
+                borderRadius: "1rem",
+                border: "2px solid #FFB74D",
+                background: "linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%)",
+                padding: "1rem",
+              }}
+            >
+              <AlertCircle style={{ width: "1.2rem", height: "1.2rem", color: "#FF9933", flexShrink: 0 }} />
+              <AlertDescription style={{ color: "#E65100", fontWeight: 500 }}>{error}</AlertDescription>
             </Alert>
           )}
 
@@ -768,15 +898,15 @@ export default function ConsultationPage() {
             style={{
               display: "flex",
               gap: "0.75rem",
-              background: "white",
+              background: "linear-gradient(135deg, #FFFFFF 0%, #FAFAFA 100%)",
               padding: "1rem",
               borderRadius: "1.25rem",
-              border: "1px solid #e0d9d3",
-              boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+              border: "2px solid #E8E8E8",
+              boxShadow: "0 4px 16px rgba(31, 65, 179, 0.06)",
             }}
           >
             <Textarea
-              placeholder="Share your thoughts or ask for support..."
+              placeholder="Ask your legal question about Indian law..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -785,15 +915,24 @@ export default function ConsultationPage() {
                 flex: 1,
                 minHeight: "3rem",
                 maxHeight: "6rem",
-                padding: "0.75rem",
-                border: "1px solid #e0d9d3",
-                borderRadius: "0.75rem",
+                padding: "0.875rem",
+                border: "1.5px solid #E0E0E0",
+                borderRadius: "0.875rem",
                 fontSize: "0.95rem",
-                color: "#1a1a1a",
+                color: "#0F1419",
                 fontFamily: "inherit",
                 resize: "none",
-                backgroundColor: "#fafaf8",
-                transition: "border-color 0.2s",
+                backgroundColor: "#FAFAFA",
+                transition: "all 0.2s",
+                opacity: loading || isTypingActive ? 0.6 : 1,
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = "#FF9933"
+                e.currentTarget.style.boxShadow = "0 0 0 3px rgba(255, 153, 51, 0.1)"
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = "#E0E0E0"
+                e.currentTarget.style.boxShadow = "none"
               }}
             />
             <Button
@@ -804,23 +943,40 @@ export default function ConsultationPage() {
                 height: "auto",
                 alignSelf: "flex-end",
                 background:
-                  loading || isTypingActive || !query.trim() ? "#d1d5db" : "#2d8a8a",
-                color: "white",
-                borderRadius: "0.75rem",
-                cursor:
                   loading || isTypingActive || !query.trim()
-                    ? "not-allowed"
-                    : "pointer",
+                    ? "#DDD"
+                    : "linear-gradient(135deg, #138808 0%, #0F6B04 100%)",
+                color: "white",
+                borderRadius: "0.875rem",
+                cursor: loading || isTypingActive || !query.trim() ? "not-allowed" : "pointer",
                 border: "none",
-                padding: "0.75rem",
+                padding: "0.875rem",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "all 0.2s",
+                fontWeight: 600,
+                boxShadow: loading || isTypingActive || !query.trim() ? "none" : "0 4px 12px rgba(19, 136, 8, 0.25)",
+              }}
+              onMouseEnter={(e) => {
+                if (!loading && !isTypingActive && query.trim()) {
+                  e.currentTarget.style.boxShadow = "0 6px 20px rgba(19, 136, 8, 0.35)"
+                  e.currentTarget.style.transform = "translateY(-1px)"
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(19, 136, 8, 0.25)"
+                e.currentTarget.style.transform = "translateY(0)"
               }}
             >
-              {loading && !isTypingActive ? ( // Show loader only on network request
-                <Loader2 style={{ width: "1.25rem", height: "1.25rem", animation: "spin 1s linear infinite" }} />
+              {loading && !isTypingActive ? (
+                <Loader2
+                  style={{
+                    width: "1.25rem",
+                    height: "1.25rem",
+                    animation: "spin 1s linear infinite",
+                  }}
+                />
               ) : (
                 <Send style={{ width: "1.25rem", height: "1.25rem" }} />
               )}
@@ -847,7 +1003,16 @@ export default function ConsultationPage() {
             transform: rotate(360deg);
           }
         }
-        /* Show delete icon on hover */
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
         button:hover .delete-icon {
           visibility: visible;
         }
