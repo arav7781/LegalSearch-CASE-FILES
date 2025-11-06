@@ -305,8 +305,16 @@ export default function LegalTechPage() {
 
       const data: ConsultationResponse = await response.json()
 
-      const parsedAiResponse: AiResponseContent = JSON.parse(data.response)
-      const consultationText = parsedAiResponse.consultation || "I'm unable to provide guidance on this matter."
+      let consultationText = "I'm unable to provide guidance on this matter."
+
+      try {
+        const parsedAiResponse: AiResponseContent = JSON.parse(data.response)
+        consultationText = parsedAiResponse.consultation || consultationText
+      } catch (parseError) {
+        console.error("[v0] JSON parse error:", parseError)
+        // If parsing fails, treat response as plain text
+        consultationText = typeof data.response === "string" ? data.response : consultationText
+      }
 
       const aiMessage: Message = {
         id: uuidv4(),
@@ -691,7 +699,6 @@ export default function LegalTechPage() {
               </div>
             )}
 
-            {/* Messages */}
             {messages.map((message) => (
               <div
                 key={message.id}
