@@ -26,7 +26,7 @@ const API_BASE_URL = "https://aravsaxena884-consult.hf.space"
 
 const CONSULTATION_URL = `${API_BASE_URL}/legal-consultation`
 const HISTORY_URL = `${API_BASE_URL}/get-session-history`
-const DELETE_SESSION_URL = `${API_BASE_URL}/delete-session` // <-- 1. ADDED THIS
+const DELETE_SESSION_URL = `${API_BASE_URL}/delete-session`
 
 // --- Types ---
 type Message = {
@@ -204,7 +204,6 @@ export default function ConsultationPage() {
     [currentSessionId, isTypingActive, messages.length, sessionList.length],
   )
 
-  // --- 2. UPDATED THIS FUNCTION ---
   const handleDeleteSession = async (
     e: React.MouseEvent,
     sessionIdToDelete: string,
@@ -551,21 +550,26 @@ export default function ConsultationPage() {
                     <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {session.title}
                     </span>
+                    
+                    {/* --- THIS IS THE CORRECTED ICON --- */}
                     <Trash2
                       style={{
                         width: "0.9rem",
                         height: "0.9rem",
                         color: "#9a9a9a",
                         flexShrink: 0,
-                        visibility: "hidden", // Hide by default
+                        visibility: "hidden", // Still hidden by default
                       }}
-                      className="delete-icon"
+                      className="delete-icon" // The CSS in <style jsx> targets this
                       onClick={(e) => handleDeleteSession(e, session.id)}
                       onMouseEnter={(e) => {
+                        // Only change color, NOT visibility
                         e.currentTarget.style.color = "#dc2626"
-                        e.currentTarget.style.visibility = "visible"
                       }}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "#9a9a9a")}
+                      onMouseLeave={(e) => {
+                        // Only change color, NOT visibility
+                        e.currentTarget.style.color = "#9a9a9a"
+                      }}
                     />
                   </button>
                 ))
