@@ -22,7 +22,8 @@ import {
 } from "lucide-react"
 
 // --- API Endpoints ---
-const API_BASE_URL = "https://adeshjain-adesh-legal-test.hf.space"
+const API_BASE_URL = "https://aravsaxena884-consult.hf.space";
+
 const CONSULTATION_URL = `${API_BASE_URL}/legal-consultation`
 const HISTORY_URL = `${API_BASE_URL}/get-session-history`
 
