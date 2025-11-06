@@ -394,7 +394,7 @@ export default function LegalTechPage() {
                   WebkitTextFillColor: "transparent",
                 }}
               >
-                LexAI Assist
+                LegalSearch Consultation
               </h1>
               <p style={{ fontSize: "0.9rem", color: "#666", margin: "0.25rem 0 0 0", fontWeight: 500 }}>
                 Indian Legal Intelligence Platform
@@ -651,7 +651,7 @@ export default function LegalTechPage() {
                       WebkitTextFillColor: "transparent",
                     }}
                   >
-                    Welcome to LexAI Assist
+                    Welcome
                   </h2>
                   <p style={{ fontSize: "1rem", color: "#666", margin: "0 0 1rem 0", lineHeight: "1.6" }}>
                     Expert legal guidance for Indian law matters. Ask about contracts, compliance,
