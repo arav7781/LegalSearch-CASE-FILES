@@ -64,6 +64,7 @@ export default function LegalTechPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
   const [sessionList, setSessionList] = useState<Session[]>([])
   const [isTypingActive, setIsTypingActive] = useState(false)
+  const [hoveredSessionId, setHoveredSessionId] = useState<string | null>(null)
 
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -501,28 +502,7 @@ export default function LegalTechPage() {
                 scrollbarWidth: "thin",
                 scrollbarColor: "#FF9933 #F5F5F5",
               }}
-              className="custom-scrollbar"
             >
-              <style jsx>{`
-                .custom-scrollbar {
-                  scrollbar-width: thin;
-                  scrollbar-color: #FF9933 #F5F5F5;
-                }
-                .custom-scrollbar::-webkit-scrollbar {
-                  width: 6px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                  background: #F5F5F5;
-                  border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                  background: #FF9933;
-                  border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                  background: #E88A1F;
-                }
-              `}</style>
               {sessionList.length === 0 ? (
                 <p
                   style={{
@@ -541,6 +521,8 @@ export default function LegalTechPage() {
                     key={session.id}
                     onClick={() => loadSession(session.id)}
                     disabled={isTypingActive}
+                    onMouseEnter={() => setHoveredSessionId(session.id)}
+                    onMouseLeave={() => setHoveredSessionId(null)}
                     style={{
                       padding: "0.875rem 1rem",
                       borderRadius: "0.875rem",
@@ -548,7 +530,9 @@ export default function LegalTechPage() {
                       background:
                         currentSessionId === session.id
                           ? "linear-gradient(135deg, #FFF3E0 0%, #E8F5E9 100%)"
-                          : "transparent",
+                          : hoveredSessionId === session.id
+                            ? "#F8F8F8"
+                            : "transparent",
                       cursor: isTypingActive ? "not-allowed" : "pointer",
                       display: "flex",
                       alignItems: "center",
@@ -559,18 +543,6 @@ export default function LegalTechPage() {
                       fontWeight: currentSessionId === session.id ? 600 : 500,
                       width: "100%",
                       textAlign: "left",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (currentSessionId !== session.id && !isTypingActive) {
-                        e.currentTarget.style.background = "#F8F8F8"
-                        e.currentTarget.style.border = "1px solid #FF9933"
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (currentSessionId !== session.id) {
-                        e.currentTarget.style.background = "transparent"
-                        e.currentTarget.style.border = "1px solid transparent"
-                      }
                     }}
                   >
                     <MessageSquare
@@ -596,19 +568,13 @@ export default function LegalTechPage() {
                       style={{
                         width: "0.95rem",
                         height: "0.95rem",
-                        color: "#DDD",
+                        color: hoveredSessionId === session.id ? "#FF6B6B" : "#DDD",
                         flexShrink: 0,
-                        visibility: "hidden",
-                        transition: "all 0.2s",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease",
+                        opacity: hoveredSessionId === session.id ? 1 : 0.6,
                       }}
-                      className="delete-icon"
                       onClick={(e) => handleDeleteSession(e, session.id)}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#FF6B6B"
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#DDD"
-                      }}
                     />
                   </button>
                 ))
@@ -646,27 +612,6 @@ export default function LegalTechPage() {
             }}
             className="messages-container"
           >
-            <style jsx>{`
-              .messages-container {
-                scrollbar-width: thin;
-                scrollbar-color: #138808 #F0F0F0;
-              }
-              .messages-container::-webkit-scrollbar {
-                width: 8px;
-              }
-              .messages-container::-webkit-scrollbar-track {
-                background: #F0F0F0;
-                border-radius: 10px;
-              }
-              .messages-container::-webkit-scrollbar-thumb {
-                background: #138808;
-                border-radius: 10px;
-                border: 2px solid #F0F0F0;
-              }
-              .messages-container::-webkit-scrollbar-thumb:hover {
-                background: #0F6B04;
-              }
-            `}</style>
             {/* Welcome State */}
             {messages.length === 0 && !loading && (
               <div
@@ -739,9 +684,7 @@ export default function LegalTechPage() {
                   style={{
                     width: "2.5rem",
                     height: "2.5rem",
-                    background: "linear-gradient(90deg, #FF9933 0%, #138808 100%)",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
+                    color: "#138808",
                     animation: "spin 1s linear infinite",
                   }}
                 />
@@ -1013,8 +956,29 @@ export default function LegalTechPage() {
             transform: translateY(0);
           }
         }
-        button:hover .delete-icon {
-          visibility: visible;
+
+        .messages-container {
+          scrollbar-width: thin;
+          scrollbar-color: #138808 #f0f0f0;
+        }
+
+        .messages-container::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+          background: #f0f0f0;
+          border-radius: 10px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+          background: #138808;
+          border-radius: 10px;
+          border: 2px solid #f0f0f0;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+          background: #0f6b04;
         }
       `}</style>
     </div>
