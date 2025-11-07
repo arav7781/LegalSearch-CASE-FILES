@@ -328,7 +328,7 @@ const ChatbotPage: React.FC = () => {
               </div>
 
               {/* Messages Area */}
-              <CardContent className="flex-1 p-0">
+              <CardContent className="flex-1 p-0 overflow-hidden">
                 <ScrollArea className="h-full p-6" ref={chatContainerRef}>
                   {messages.length === 0 ? (
                     <div className="text-center py-20">
