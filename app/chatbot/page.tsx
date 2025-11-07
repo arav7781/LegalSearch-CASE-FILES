@@ -50,7 +50,7 @@ interface ChatResponse {
   }
 }
 
-const API_BASE_URL = "https://aravsaxena884-trueRAG.hf.space"
+const API_BASE_URL = "https://adeshjain-adesh-legal-test.hf.space"
 
 const ChatbotPage: React.FC = () => {
   const [pdfUrl, setPdfUrl] = useState<string>("")
